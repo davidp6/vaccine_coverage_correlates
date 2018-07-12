@@ -102,6 +102,8 @@ if (!is.null(VarCorr(lmeFit)$admin1_id.1)) {
 	explainedVariancesAdmin1[, supply:=1-(edu+access)]
 	explainedVariancesAdmin1
 	explainedVariancesAdmin1[,lapply(.SD, mean), .SDcols=c('edu','access','supply')]
+	explainedVariancesAdmin1[grepl('UGA',admin1_id),lapply(.SD, mean), .SDcols=c('edu','access','supply')]
+	explainedVariancesAdmin1[grepl('ZMB',admin1_id),lapply(.SD, mean), .SDcols=c('edu','access','supply')]
 	explainedVariancesAdmin1[,lapply(.SD, sd), .SDcols=c('edu','access','supply')]
 }
 # --------------------------------------------------------------------------------------------------------

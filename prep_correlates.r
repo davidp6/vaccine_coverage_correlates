@@ -24,7 +24,7 @@ library(lme4)
 # Parameters and settings
 
 # whether to decrease the pixel resolution for speed 
-decrease_res = FALSE
+decrease_res = TRUE
 
 # which countries to subset to (ISO3 code(s), "Africa" or "All")
 subset = 'Africa'
