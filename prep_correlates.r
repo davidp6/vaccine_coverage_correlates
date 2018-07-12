@@ -15,6 +15,7 @@ library(data.table)
 library(plyr)
 library(raster)
 library(rgeos)
+library(stringr)
 library(lme4)
 # --------------------
 
@@ -23,7 +24,10 @@ library(lme4)
 # Parameters and settings
 
 # whether to decrease the pixel resolution for speed 
-decrease_res = TRUE
+decrease_res = FALSE
+
+# which countries to subset to (ISO3 code(s), "Africa" or "All")
+subset = 'Africa'
 # ---------------------------------------------------
 
 
@@ -56,7 +60,10 @@ admin1File = paste0(admin1Dir, 'gadm36_1.shp')
 outDir = paste0(j, '/temp/davidp6/vaccine_coverage_correlates/')
 
 # output files
-outFile = paste0(outDir, 'input_data.rdata')
+outFile = paste0(outDir, 'input_data_', paste0(subset, collapse=''), '.rdata')
+
+# preset for all of africa for convenience
+if (subset[1]=='Africa') subset = c('DZA', 'AGO', 'SHN', 'BEN', 'BWA', 'BFA', 'BDI', 'CMR', 'CPV', 'CAF', 'TCD', 'COM', 'COG', 'COD', 'DJI', 'EGY', 'GNQ', 'ERI', 'SWZ', 'ETH', 'GAB', 'GMB', 'GHA', 'GIN', 'GNB', 'CIV', 'KEN', 'LSO', 'LBR', 'LBY', 'MDG', 'MWI', 'MLI', 'MRT', 'MUS', 'MYT', 'MAR', 'MOZ', 'NAM', 'NER', 'NGA', 'STP', 'REU', 'RWA', 'STP', 'SEN', 'SYC', 'SLE', 'SOM', 'ZAF', 'SSD', 'SHN', 'SDN', 'SWZ', 'TZA', 'TGO', 'TUN', 'UGA', 'COD', 'ZMB', 'TZA', 'ZWE')
 # --------------------------------------------------------------------------------
 
 
@@ -69,6 +76,30 @@ access = raster(accessFile)
 
 # load estimates
 vac = raster(vacFile)
+
+# load shapefile at country level
+map0 = shapefile(admin0File)
+
+# load shapefile at admin-1 level
+map1 = shapefile(admin1File)
+
+# subset to selected countries if specified above
+if (subset[1]!='All') { 
+	map0 = map0[map0@data$'GID_0' %in% subset,]
+	map1 = map1[map1@data$'GID_0' %in% subset,]
+	edu = crop(edu, extent(map0))
+	access = crop(access, extent(map0))
+	vac = crop(vac, extent(map0))
+	edu = mask(edu, map0)
+	access = mask(access, map0)
+	vac = mask(vac, map0)
+} 
+
+# crop shapefiles to vaccine coverage extent if all countries
+if (subset[1]=='All') { 
+	map0 = crop(map0, extent(vac))
+	map1 = crop(map1, extent(vac))
+}
 
 # project covariates to estimate pixels to ensure merge
 edu = projectRaster(edu, vac)
@@ -104,27 +135,11 @@ data[, cell:=cellNumbers]
 
 # omit na to reduce extent
 data = na.omit(data)
-
-# load/simplify shapefile at country level
-map0 = shapefile(admin0File)
-map0tmp = map0@data
-# map0 = gSimplify(map0, tol=.1, topologyPreserve=TRUE)
-# map0 = as(map0, 'SpatialPolygonsDataFrame')
-# map0@data = map0tmp
-map0 = crop(map0, extent(vac))
-
-# load/simplify shapefile at admin-1 level
-map1 = shapefile(admin1File)
-map1tmp = map1@data
-# map1 = gSimplify(map1, tol=.1, topologyPreserve=TRUE)
-# map1 = as(map1, 'SpatialPolygonsDataFrame')
-# map1@data = map1tmp
-map1 = crop(map1, extent(vac))
 # -----------------------------------------------------
 
 
 # ----------------------------------------------------------------------------------
-# Identify the admin1 for each pixel #
+# Identify the admin1 for each pixel number
 
 # extract pixels for each polygon
 extractionOrig = extract(vac, map1, cellnumbers=TRUE) # SLOW
@@ -152,11 +167,11 @@ data = merge(data, ids, 'cell')
 
 
 # ------------------------------------------------------
-# Simplify maps
+# Simplify maps (after extraction)
 map0tmp = map0@data
-map0 = gSimplify(map0, tol=.1, topologyPreserve=TRUE)
-map0 = as(map0, 'SpatialPolygonsDataFrame')
-map0@data = map0tmp
+map0S = gSimplify(map0, tol=.1, topologyPreserve=TRUE)
+map0S = as(map0, 'SpatialPolygonsDataFrame')
+map0S@data = map0tmp
 map1tmp = map1@data
 map1S = gSimplify(map1, tol=.1, topologyPreserve=TRUE)
 map1S = as(map1S, 'SpatialPolygonsDataFrame')
@@ -164,51 +179,20 @@ map1S@data = map1tmp
 # ------------------------------------------------------
 
 
-# --------------------------------------------------------------------------------------------------------
+# -------------------------------
 # Run analyses
-
-# estimate overall explained variance with a linear model
-lmFit = lm(logit(dpt3_cov_mean_raked_raster) ~ log(access2_mean_synoptic) + edu_mean_stage_2_mean_1y_2016_00_00, data=data) 
-
-# print explained variance
-af = anova(lmFit)
-afss = af$'Sum Sq'
-explainedVariancesOverall = data.table(variable=c('access','edu','supply'), explained_variance=afss/sum(afss))
-explainedVariancesOverall
-
-# estimate admin1-level random effects
-lmeFit = lmer(logit(dpt3_cov_mean_raked_raster) ~ log(access2_mean_synoptic) + edu_mean_stage_2_mean_1y_2016_00_00 + 
-				(1 + edu_mean_stage_2_mean_1y_2016_00_00 | admin1_id) + (1 + (access2_mean_synoptic) | admin1_id), data=data) 
-
-# extract admin1-level variances
-V1<-VarCorr(lmeFit)$admin1_id
-V2<-VarCorr(lmeFit)$admin1_id.1
-
-# compute variance explained at each admin1 mean
-means = data[,.(mean(edu_mean_stage_2_mean_1y_2016_00_00), mean(log(access2_mean_synoptic))), by='admin1_id']
-Z1<-cbind(rep(1,nrow(means)), means[[2]])
-Z2<-cbind(rep(1,nrow(means)), means[[3]])
-explainedVariance1<-diag(Z1%*%V1%*%t(Z1))
-explainedVariance2<-diag(Z2%*%V2%*%t(Z2))
-
-# convert explained variances to proportions
-resid = sqrt(attr(VarCorr(lmeFit), 'sc')) # IS THERE A WAY TO GET GROUP-SPECIFIC RESIDUAL VARIANCE ESTIMATES?
-explainedVarianceSc1 = explainedVariance1/(explainedVariance1+explainedVariance2+resid)
-explainedVarianceSc2 = explainedVariance2/(explainedVariance1+explainedVariance2+resid)
-explainedVariancesAdmin1 = data.table(admin1_id=accessMeans$admin1_id, edu=explainedVarianceSc1, access=explainedVarianceSc2)
-
-# store admin1-level explained variance for each factor
-explainedVariancesAdmin1[, supply:=1-(edu+access)]
-explainedVariancesAdmin1
-explainedVariancesAdmin1[,lapply(.SD, mean), .SDcols=c('edu','access','supply')]
-explainedVariancesAdmin1[,lapply(.SD, sd), .SDcols=c('edu','access','supply')]
-# --------------------------------------------------------------------------------------------------------
+# This script creates the following objects:
+# 'lmFit','lmeFit','explainedVariancesOverall', 'explainedVariancesAdmin1'
+source('./analyze_correlates.r')
+# -------------------------------
 
 
 # --------------------------------------------------------
 # Save
 objs = NULL
-for (o in c('access','edu','vac','data','map0','map1','lmFit','lmeFit','explainedVariancesOverall','explainedVariancesAdmin1') {
+for (o in c('access','edu','vac','data','map0S','map1S',
+			'lmFit','lmeFit','explainedVariancesOverall',
+			'explainedVariancesAdmin1')) {
 	if (o %in% ls()) objs = c(objs, o)
 }
 save(list=objs, file=outFile)
