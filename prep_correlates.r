@@ -3,6 +3,7 @@
 #
 # 7/3/2018
 # Prep covariates and their relationship with vaccine coverage at the pixel level
+# The current working directory should be the root of this repo
 # ----------------------------------------------------------------------------------
 
 
@@ -115,9 +116,9 @@ access = mask(access, vac)
 
 # aggregate resolution if specified
 if (decrease_res) { 
-	edu = aggregate(edu, fact=8)
-	access = aggregate(access, fact=8)
-	vac = aggregate(vac, fact=8)
+	edu = aggregate(edu, fact=4)
+	access = aggregate(access, fact=4)
+	vac = aggregate(vac, fact=4)
 }
 
 # convert to data tables
