@@ -12,6 +12,7 @@
 rm(list=ls())
 library(data.table)
 library(raster)
+library(stringr)
 library(ggplot2)
 library(RColorBrewer)
 library(cowplot)
@@ -27,17 +28,32 @@ j = ifelse(Sys.info()[1]=='Windows', 'J:', '/home/j')
 dir = paste0(j, '/temp/davidp6/vaccine_coverage_correlates/')
 
 # input file
-inFile = paste0(dir, 'input_data_UGAZMB.rdata')
+inFile = paste0(dir, 'input_data_Africa.rdata')
+
+# second input file if explained variances come from a different model run
+# this loads first and assumes there are no model estimates in inFile1
+inFile2 = paste0(dir, 'input_data_Africa_factor8.rdata')
 
 # output file
-graphFile = paste0(dir, 'vaccine_coverage_correlates_UGAZMB.pdf')
+graphFile = paste0(dir, 'vaccine_coverage_correlates_Africa.pdf')
+
+# countries to subset to (ISO3 code(s), or "All")
+subset = c('UGA','ZMB')
 # --------------------------------------------------------------
 
 
-# ---------------------
+# ------------------------------------------------
 # Load all data
+load(file=inFile2)
 load(file=inFile)
-# ---------------------
+
+# subset if specified
+if (subset[1]!='All') { 
+	data = data[iso3 %in% subset]
+	map0S = map0S[map0S@data$'GID_0' %in% subset,]
+	map1S = map1S[map1S@data$'GID_0' %in% subset,]
+}
+# ------------------------------------------------
 
 
 # ---------------------------------------------------------------------------
@@ -77,9 +93,11 @@ data[, access_vac_bin:=paste0(vac_bin, '/', access_bin)]
 # map1S@data = map1tmp
 
 # fortify the map for ggplot
-map0F = fortify(map0S)
+map0F = data.table(fortify(map0S, region='GID_0'))
+map0F[, iso3:=id]
 map1F = data.table(fortify(map1S))
 map1F = merge(map1F, data.table(id=unique(map1F$id), admin1_id=map1S@data$GID_1), by='id')
+map1F[, iso3:=str_sub(admin1_id,1,3)]
 
 # # crop the map down to just the extent with data
 # mapC = crop(map0, extent(vac))
@@ -143,23 +161,24 @@ p1 = ggplot(data, aes(y=y,x=x,fill=dpt3_cov_mean_raked_raster)) +
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.025, inherit.aes=FALSE) + 
 	scale_fill_gradientn('DPT3 Coverage', colors=cols1, na.value='white') + 
-	labs(title='2016 DPT Coverage (Third Dose)', 
-		subtitle='Low and Middle-Income Countries') + 
+	labs(title='2016 DPT Coverage (Third Dose)') + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=1, face='plain'), 
 		plot.subtitle=element_text(hjust=1), plot.margin=unit(c(2,0,2,0), 'cm'))
+if (subset[1]!='All') p1 = p1 + facet_wrap(~iso3, scales='free')
 
+		
 # education
 p2 = ggplot(data, aes(y=y,x=x,fill=edu_mean_stage_2_mean_1y_2016_00_00)) + 
 	geom_tile() + 
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.05, inherit.aes=FALSE) + 
 	scale_fill_gradientn('Mean Years\nof Education', colors=cols2, na.value='white') + 
-	labs(title='2016 Maternal Educational Attainment', 
-		subtitle='Low and Middle-Income Countries') + 
+	labs(title='2016 Maternal Educational Attainment') + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=1, face='plain'), 
 		plot.subtitle=element_text(hjust=1), plot.margin=unit(c(2,0,2,0), 'cm'))
+if (subset[1]!='All') p2 = p2 + facet_wrap(~iso3, scales='free')
 	
 # access	
 p3 = ggplot(data, aes(y=y,x=x,fill=access_trimmed)) + 
@@ -168,11 +187,11 @@ p3 = ggplot(data, aes(y=y,x=x,fill=access_trimmed)) +
 		, color=border, size=.025, inherit.aes=FALSE) + 
 	scale_fill_gradientn('Travel Time', colors=cols3, trans='log', na.value='white', 
 		breaks=c(10,60,360,1440,4320), labels=c('10 min', '1 hour', '6 hour', '1 day', '3 days')) + 
-	labs(title='2015 Access to Settlements >50,000 Population', 
-		subtitle='Low and Middle-Income Countries') + 
+	labs(title='2015 Access to Settlements >50,000 Population') + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=1, face='plain'), 
 		plot.subtitle=element_text(hjust=1), plot.margin=unit(c(2,0,2,0), 'cm'))
+if (subset[1]!='All') p3 = p3 + facet_wrap(~iso3, scales='free')
 
 # bivariate map of education vs coverage
 p4a= ggplot(data, aes(y=y,x=x,fill=edu_vac_bin)) + 
@@ -180,11 +199,11 @@ p4a= ggplot(data, aes(y=y,x=x,fill=edu_vac_bin)) +
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.025, inherit.aes=FALSE) + 
 	scale_fill_manual('',values=colGrid1) + 
-	labs(title='2016 DPT3 Coverage and Maternal Education', 
-		subtitle='Low and Middle-Income Countries') + 
+	labs(title='2016 DPT3 Coverage and Maternal Education') + 
 	theme_void() + 
 	theme(legend.position='none', plot.title=element_text(hjust=0, face='plain'), 
 		plot.subtitle=element_text(hjust=0), plot.margin=unit(c(2,0,2,0), 'cm'))
+if (subset[1]!='All') p4a = p4a + facet_wrap(~iso3, scales='free')
 
 legendData = data.table(labs = names(colGrid1))
 legendData[grepl('Low Education',labs), edu:=1]
@@ -203,7 +222,7 @@ p4legend = ggplot(legendData, aes(y=vac, x=edu, fill=labs)) +
 	theme(legend.position='none', panel.grid.major=element_blank(), 
 		panel.grid.minor=element_blank())
 
-p4 = ggdraw() + draw_plot(p4a) + draw_plot(p4legend, x=.0, y=.1, width=.175, height=.24)
+p4 = ggdraw() + draw_plot(p4a) + draw_plot(p4legend, x=.5, y=.55, width=.2, height=.24)
 
 # bivariate map of access vs coverage
 p5a= ggplot(data, aes(y=y,x=x,fill=access_vac_bin)) + 
@@ -211,11 +230,11 @@ p5a= ggplot(data, aes(y=y,x=x,fill=access_vac_bin)) +
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.025, inherit.aes=FALSE) + 
 	scale_fill_manual('',values=colGrid2) + 
-	labs(title='2016 DPT3 Coverage and Access to Settlements', 
-		subtitle='Low and Middle-Income Countries') + 
+	labs(title='2016 DPT3 Coverage and Access to Settlements') + 
 	theme_void() + 
 	theme(legend.position='none', plot.title=element_text(hjust=0, face='plain'), 
 		plot.subtitle=element_text(hjust=0), plot.margin=unit(c(2,0,2,0), 'cm'))
+if (subset[1]!='All') p5a = p5a + facet_wrap(~iso3, scales='free')
 
 legendData = data.table(labs = names(colGrid2))
 legendData[grepl('Low Access',labs), access:=1]
@@ -234,7 +253,7 @@ p5legend = ggplot(legendData, aes(y=vac, x=access, fill=labs)) +
 	theme(legend.position='none', panel.grid.major=element_blank(), 
 		panel.grid.minor=element_blank())
 
-p5 = ggdraw() + draw_plot(p5a) + draw_plot(p5legend, x=.0, y=.1, width=.175, height=.24)
+p5 = ggdraw() + draw_plot(p5a) + draw_plot(p5legend, x=.5, y=.55, width=.2, height=.24)
 
 # admin1-level correlation maps
 p6 = ggplot(map1F, aes(x=long, y=lat, group=group, fill=edu)) + 
@@ -242,23 +261,24 @@ p6 = ggplot(map1F, aes(x=long, y=lat, group=group, fill=edu)) +
 	geom_path(color=border, size=.01) + 
 	scale_fill_gradientn('% Explained by Demand', colors=cols2, na.value='white') + 
 	labs(title='Percentage of 2016 DPT3 Coverage Explained by Demand', 
-		subtitle='Low and Middle-Income Countries at Province-Level') + 
+		subtitle='At Second Administrative Level') + 
 	coord_fixed(ratio=1) + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=0, face='plain'), 
 		plot.subtitle=element_text(hjust=0))
+if (subset[1]!='All') p6 = p6 + facet_wrap(~iso3, scales='free')
 	
 p7 = ggplot(map1F, aes(x=long, y=lat, group=group, fill=supply)) + 
 	geom_polygon() + 
 	geom_path(color=border, size=.01) + 
 	scale_fill_gradientn('% Explained by Supply', colors=cols1, na.value='white') + 
 	labs(title='Percentage of 2016 DPT3 Coverage Explained by Supply', 
-		subtitle='Low and Middle-Income Countries at Province-Level') + 
+		subtitle='At Second Administrative Level') + 
 	coord_fixed(ratio=1) + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=0, face='plain'), 
 		plot.subtitle=element_text(hjust=0))
-	
+if (subset[1]!='All') p7 = p7 + facet_wrap(~iso3, scales='free')
 # --------------------------------------------------------------------------------------------
 
 
