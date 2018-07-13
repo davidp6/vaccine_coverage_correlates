@@ -25,7 +25,7 @@ library(lme4)
 # Parameters and settings
 
 # whether to decrease the pixel resolution for speed 
-decrease_res = TRUE
+decrease_res = FALSE
 
 # which countries to subset to (ISO3 code(s), "Africa" or "All")
 subset = 'Africa'
@@ -170,11 +170,11 @@ data = merge(data, ids, 'cell')
 # ------------------------------------------------------
 # Simplify maps (after extraction)
 map0tmp = map0@data
-map0S = gSimplify(map0, tol=.1, topologyPreserve=TRUE)
+map0S = gSimplify(map0, tol=.01, topologyPreserve=TRUE)
 map0S = as(map0, 'SpatialPolygonsDataFrame')
 map0S@data = map0tmp
 map1tmp = map1@data
-map1S = gSimplify(map1, tol=.1, topologyPreserve=TRUE)
+map1S = gSimplify(map1, tol=.01, topologyPreserve=TRUE)
 map1S = as(map1S, 'SpatialPolygonsDataFrame')
 map1S@data = map1tmp
 # ------------------------------------------------------
