@@ -27,15 +27,14 @@ j = ifelse(Sys.info()[1]=='Windows', 'J:', '/home/j')
 # directory for output
 dir = paste0(j, '/temp/davidp6/vaccine_coverage_correlates/')
 
-# input file
-inFile = paste0(dir, 'input_data_Africa.rdata')
+# run name
+runName = 'UGAZMBresolution1'
 
-# second input file if explained variances come from a different model run
-# this loads first and assumes there are no model estimates in inFile1
-inFile2 = paste0(dir, 'input_data_Africa_factor8.rdata')
+# input file
+inFile = paste0(dir, 'data/input_data_', runName, '.rdata')
 
 # output file
-graphFile = paste0(dir, 'vaccine_coverage_correlates_Africa.pdf')
+graphFile = paste0(dir, 'visualizations/vaccine_coverage_correlates_', runName, '.pdf')
 
 # countries to subset to (ISO3 code(s), or "All")
 subset = c('UGA','ZMB')
@@ -44,7 +43,6 @@ subset = c('UGA','ZMB')
 
 # ------------------------------------------------
 # Load all data
-load(file=inFile2)
 load(file=inFile)
 
 # subset if specified
@@ -149,6 +147,7 @@ cols5 = brewer.pal(6, 'Reds')
 
 # other colors
 border = 'grey35'
+naCol = 'grey80'
 # ----------------------------------------------------------------------------------------------------------------
 
 
@@ -160,7 +159,7 @@ p1 = ggplot(data, aes(y=y,x=x,fill=dpt3_cov_mean_raked_raster)) +
 	geom_tile() + 
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.025, inherit.aes=FALSE) + 
-	scale_fill_gradientn('DPT3 Coverage', colors=cols1, na.value='white') + 
+	scale_fill_gradientn('DPT3 Coverage', colors=cols1, na.value=naCol) + 
 	labs(title='2016 DPT Coverage (Third Dose)') + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=1, face='plain'), 
@@ -173,7 +172,7 @@ p2 = ggplot(data, aes(y=y,x=x,fill=edu_mean_stage_2_mean_1y_2016_00_00)) +
 	geom_tile() + 
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.05, inherit.aes=FALSE) + 
-	scale_fill_gradientn('Mean Years\nof Education', colors=cols2, na.value='white') + 
+	scale_fill_gradientn('Mean Years\nof Education', colors=cols2, na.value=naCol) + 
 	labs(title='2016 Maternal Educational Attainment') + 
 	theme_void() + 
 	theme(plot.title=element_text(hjust=1, face='plain'), 
@@ -185,7 +184,7 @@ p3 = ggplot(data, aes(y=y,x=x,fill=access_trimmed)) +
 	geom_tile() + 
 	geom_path(data=map0F, aes(x=long, y=lat, group=group)
 		, color=border, size=.025, inherit.aes=FALSE) + 
-	scale_fill_gradientn('Travel Time', colors=cols3, trans='log', na.value='white', 
+	scale_fill_gradientn('Travel Time', colors=cols3, trans='log', na.value=naCol, 
 		breaks=c(10,60,360,1440,4320), labels=c('10 min', '1 hour', '6 hour', '1 day', '3 days')) + 
 	labs(title='2015 Access to Settlements >50,000 Population') + 
 	theme_void() + 
@@ -222,7 +221,7 @@ p4legend = ggplot(legendData, aes(y=vac, x=edu, fill=labs)) +
 	theme(legend.position='none', panel.grid.major=element_blank(), 
 		panel.grid.minor=element_blank())
 
-p4 = ggdraw() + draw_plot(p4a) + draw_plot(p4legend, x=.5, y=.55, width=.2, height=.24)
+p4 = ggdraw() + draw_plot(p4a) + draw_plot(p4legend, x=.5, y=.6, width=.2, height=.24)
 
 # bivariate map of access vs coverage
 p5a= ggplot(data, aes(y=y,x=x,fill=access_vac_bin)) + 
@@ -253,13 +252,13 @@ p5legend = ggplot(legendData, aes(y=vac, x=access, fill=labs)) +
 	theme(legend.position='none', panel.grid.major=element_blank(), 
 		panel.grid.minor=element_blank())
 
-p5 = ggdraw() + draw_plot(p5a) + draw_plot(p5legend, x=.5, y=.55, width=.2, height=.24)
+p5 = ggdraw() + draw_plot(p5a) + draw_plot(p5legend, x=.5, y=.6, width=.2, height=.24)
 
 # admin1-level correlation maps
 p6 = ggplot(map1F, aes(x=long, y=lat, group=group, fill=edu)) + 
 	geom_polygon() + 
 	geom_path(color=border, size=.01) + 
-	scale_fill_gradientn('% Explained by Demand', colors=cols2, na.value='white') + 
+	scale_fill_gradientn('% Explained by Demand', colors=cols2, na.value=naCol) + 
 	labs(title='Percentage of 2016 DPT3 Coverage Explained by Demand', 
 		subtitle='At Second Administrative Level') + 
 	coord_fixed(ratio=1) + 
@@ -271,7 +270,7 @@ if (subset[1]!='All') p6 = p6 + facet_wrap(~iso3, scales='free')
 p7 = ggplot(map1F, aes(x=long, y=lat, group=group, fill=supply)) + 
 	geom_polygon() + 
 	geom_path(color=border, size=.01) + 
-	scale_fill_gradientn('% Explained by Supply', colors=cols1, na.value='white') + 
+	scale_fill_gradientn('% Explained by Supply', colors=cols1, na.value=naCol) + 
 	labs(title='Percentage of 2016 DPT3 Coverage Explained by Supply', 
 		subtitle='At Second Administrative Level') + 
 	coord_fixed(ratio=1) + 
