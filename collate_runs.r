@@ -33,7 +33,7 @@ files = c('input_data_UGAZMBresolution1.rdata',
 'input_data_UGAZMBresolution8.rdata')
 
 # output files
-outFile1 = paste0(dir, 'evTableAdmin1.csv'))
+outFile1 = paste0(dir, 'evTableAdmin1.csv')
 outFile2 = paste0(dir, 'evTableOverall.csv')
 # ---------------------------------------------------------------
 
@@ -47,12 +47,6 @@ for (f in files) {
 	# load data
 	load(paste0(dir, f))
 	
-	if (i==1) evTableA = explainedVariancesAdmin1
-	if (i>1) evTableA = rbind(evTable, explainedVariancesAdmin1)
-	
-	if (i==1) evTableO = explainedVariancesOverall
-	if (i>1) evTableO = rbind(evTable, explainedVariancesOverall)
-
 	# parse name
 	cleaned = gsub('input_data_', '', f)
 	cleaned = gsub('.rdata', '', cleaned)
@@ -61,10 +55,15 @@ for (f in files) {
 	res = parsed[2]
 
 	# label runs
-	evTableA[, geography:=geo]
-	evTableA[, resolution:=res]
-	evTableO[, geography:=geo]
-	evTableO[, resolution:=res]
+	explainedVariancesAdmin1[, geography:=geo]
+	explainedVariancesAdmin1[, resolution:=res]
+	explainedVariancesOverall[, geography:=geo]
+	explainedVariancesOverall[, resolution:=res]
+	
+	if (i==1) evTableA = explainedVariancesAdmin1
+	if (i==1) evTableO = explainedVariancesOverall
+	if (i>1) evTableA = rbind(evTableA, explainedVariancesAdmin1)
+	if (i>1) evTableO = rbind(evTableO, explainedVariancesOverall)
 	
 	i=i+1
 }
