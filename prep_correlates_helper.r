@@ -22,7 +22,7 @@ subset = commandArgs()[6]
 n = length(commandArgs())
 if (n>6) { 
 	for(i in seq(from=7, to=n)) {
-		subset = c(subset, commandArgs()[i]
+		subset = c(subset, commandArgs()[i])
 	}
 }
 # ------------------------------------------
