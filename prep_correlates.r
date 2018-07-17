@@ -61,7 +61,7 @@ prepCorrelates = function(decrease_res=TRUE, res_factor=8, subset='Africa') {
 	shapeFileLakes = paste0(j, '/WORK/11_geospatial/06_original shapefiles/GLWD_lakes/glwd_1.shp')
 
 	# directory for output
-	outDir = paste0(j, '/temp/davidp6/vaccine_coverage_correlates/data')
+	outDir = paste0(j, '/temp/davidp6/vaccine_coverage_correlates/data/')
 
 	# output files
 	outFile = paste0(outDir, 'input_data_', paste0(subset, collapse=''), 'resolution', res_factor, '.rdata')
