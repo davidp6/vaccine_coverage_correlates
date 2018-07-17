@@ -191,12 +191,12 @@ prepCorrelates = function(decrease_res=TRUE, res_factor=8, subset='Africa') {
 	# ------------------------------------------------------
 
 
-	# -------------------------------
+	# ------------------------------------------
 	# Run analyses
 	# This script creates the following objects:
 	# 'lmFit','lmeFit','explainedVariancesOverall', 'explainedVariancesAdmin1'
-	source('./analyze_correlates.r')
-	# -------------------------------
+	source('./analyze_correlates.r', local=TRUE)
+	# ------------------------------------------
 
 
 	# --------------------------------------------------------
