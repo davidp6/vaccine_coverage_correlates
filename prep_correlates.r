@@ -87,6 +87,9 @@ prepCorrelates = function(decrease_res=TRUE, res_factor=8, subset='Africa') {
 	# load shapefile at admin-1 level
 	map1 = shapefile(admin1File)
 
+	# load the ground cover data
+	lakes = shapefile(shapeFileLakes)
+
 	# subset to selected countries if specified above
 	if (subset[1]!='All') { 
 		map0 = map0[map0@data$'GID_0' %in% subset,]
