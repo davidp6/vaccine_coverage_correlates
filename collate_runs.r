@@ -67,6 +67,28 @@ for (f in files) {
 	
 	i=i+1
 }
+
+# reshape overall table
+evTableO = dcast.data.table(evTableO, geography+resolution~variable, value.var='explained_variance')
+# --------------------------------------------------------------------
+
+
+# --------------------------------------------------------------------
+# Print to screen
+means = tmp[, lapply(.SD, mean), by=c('iso3','geography','resolution'),
+			.SDcols=c('edu','access','supply')]
+
+uga = means[iso3=='UGA']
+uga[, dist:=sqrt((edu-.36)^2 + (access-.2)^2 + (supply-(.25+.18))^2)]
+uga[, dist1:=sqrt((edu-.36)^2)]
+uga[, dist2:=sqrt((access-.2)^2)]
+uga[, dist3:=sqrt((supply-(.25+.18))^2)]
+
+zmb = means[iso3=='ZMB']
+zmb[, dist:=sqrt((edu-.4)^2 + (access-.22)^2 + (supply-(.15+.23))^2)]
+zmb[, dist1:=sqrt((edu-.4)^2)]
+zmb[, dist2:=sqrt((access-.22)^2)]
+zmb[, dist3:=sqrt((supply-(.15+.23))^2)]
 # --------------------------------------------------------------------
 
 
